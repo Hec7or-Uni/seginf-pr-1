@@ -142,7 +142,7 @@ curl -H "AAAAAA: BBBBBB" -v 10.9.0.80/cgi-bin/getenv.cgi
 
 ## Tarea 3
 
-Para lanzar el ataque Shellshock a través del CGI vulnerable se añade una cabecera `ContentType`. La salida del código extra aparecerá en el contenido del mensaje de respuesta del servidor, ya que se exportó una declaración de función vulnerable, por lo que 
+Para lanzar el ataque Shellshock a través del CGI vulnerable se añade una cabecera `ContentType`. La salida del código extra aparecerá en el contenido del mensaje de respuesta del servidor, ya que se exportó una declaración de función vulnerable, y como el CGI crea un shell hijo, entonces se ejecutará el código extra.
 
 ### Mostrar `/etc/passwd`
 ```bash
