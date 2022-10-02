@@ -223,9 +223,9 @@ Hemos usado el script [linPEAS](https://github.com/carlospolop/PEASS-ng/tree/mas
 
 ## Tarea 5
 
-Se ha realizado de nuevo la tarea 3, cambiando el intérprete del script del CGI al bash parcheado.
+Se ha realizado de nuevo la tarea 3, cambiando el intérprete del script del CGI al bash parcheado. Para ello, se ha cambiado el shebang del script CGI vul.cgi en la máquina víctima a `#!/bin/bash`.
 
-(...)
+Se ha observado que la respuesta a una petición que incluye contenido que explota la vulnerabilidad ya no tiene efecto, ya que las definiciones de función se parsean correctamente e ignoran cadenas mal formadas. A continuación se muestra el resultado de una petición a ambos scripts:
 
 ## Referencias 
 
