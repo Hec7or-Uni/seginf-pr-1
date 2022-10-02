@@ -227,6 +227,11 @@ Se ha realizado de nuevo la tarea 3, cambiando el intérprete del script del CGI
 
 Se ha observado que la respuesta a una petición que incluye contenido que explota la vulnerabilidad ya no tiene efecto, ya que las definiciones de función se parsean correctamente e ignoran cadenas mal formadas. A continuación se muestra el resultado de una petición a ambos scripts:
 
+```
+root@4f8f7c1d55f1:/# curl -H "foo: () { :; }; echo Content_type: text/plain; echo; /bin/ls -l" 10.9.0.80/cgi-bin/vul.cgi
+Hello World
+```
+
 ## Referencias 
 
 - [Información](https://mudongliang.github.io/2020/09/17/ruid-euid-suid-usage-in-linux.html) sobre `ruid`, `euid` y `suid`
