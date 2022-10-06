@@ -232,6 +232,15 @@ root@4f8f7c1d55f1:/# curl -H "foo: () { :; }; echo Content_type: text/plain; ech
 Hello World
 ```
 
+## Conclusiones
+
+Tras haber realizado la práctica y haber podido explotar la vulnerabilidad hemos sacado varias conclusiones sobre la misma:
+- Tener un servidor web con un intérprete de scripts CGI vulnerable a Shellshock puede ser un riesgo para la seguridad de la máquina.
+- Es importante mantener los sistemas actualizados para evitar que se produzcan vulnerabilidades como esta.
+- Es importante tener un buen control de los permisos de los usuarios y grupos de los sistemas, ya que si un usuario tiene permisos de ejecución en un script CGI, puede explotar la vulnerabilidad para obtener una shell con privilegios de root. Esto se puede ver en la [Tarea 3](#tarea-3), donde el usuario `www-data` tiene permisos de ejecución en el script CGI, por lo que puede explotar la vulnerabilidad para obtener una shell con privilegios de root.
+
+Estas conclusiones no son únicas a esta vulnerabilidad, sino que se pueden aplicar a cualquier vulnerabilidad que pueda ser explotada por un usuario debido a unas malas prácticas de seguridad.
+
 ## Referencias 
 
 - [Información](https://mudongliang.github.io/2020/09/17/ruid-euid-suid-usage-in-linux.html) sobre `ruid`, `euid` y `suid`
